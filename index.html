@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>IP Dashboard</title>
+  <style>
+/* Reset & Base */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'Segoe UI', sans-serif;
+}
+
+body {
+  background-color: #000; /* Black background */
+  color: silver;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 2rem;
+}
+
+/* Centered container */
+.container {
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid red;
+  border-radius: 16px;
+  padding: 2rem 3rem;
+  box-shadow: 0 0 30px rgba(255, 0, 0, 0.3);
+  text-align: center;
+  max-width: 600px;
+  width: 100%;
+
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+/* Headings */
+h1, h2, h3 {
+  color: red;
+  text-shadow: 1px 1px 3px black;
+}
+
+/* Labels and text */
+p, label, .ip-text {
+  color: silver;
+  font-size: 1rem;
+}
+
+/* IP Display */
+.ip-text {
+  font-weight: bold;
+  background: #111;
+  padding: 0.6rem 1rem;
+  border: 1px solid red;
+  border-radius: 8px;
+  display: inline-block;
+}
+
+/* Button */
+button {
+  background-color: red;
+  color: black;
+  border: 2px solid silver;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+button:hover {
+  background-color: silver;
+  color: red;
+  border-color: red;
+}
+
+/* Inputs */
+input, textarea {
+  background-color: black;
+  color: silver;
+  border: 2px solid red;
+  border-radius: 6px;
+  padding: 0.75rem;
+  width: 100%;
+}
+input:focus, textarea:focus {
+  outline: none;
+  border-color: silver;
+}
+
+/* Links */
+a {
+  color: red;
+  text-decoration: none;
+  font-weight: bold;
+}
+a:hover {
+  color: silver;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #000;
+}
+::-webkit-scrollbar-thumb {
+  background: red;
+  border-radius: 4px;
+}
+
+
+
+  </style>
+</head>
+<body>
+<div class="container">
+  <h1>Verify user</h1>
+  <p class="ip-text" id="ipDisplay">Verify your self to use the TYP menu</p>
+  <button id="registerBtn">Verify user ID</button>
+  <div id="status" style="margin-top: 1rem; color: silver;"></div>
+</div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js";
+    import { getDatabase, ref, push, set, get, child } from "https://www.gstatic.com/firebasejs/9.23.0/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyCUUabZ_pDb0C1dezzuyBVzP6Ut7XpWo0s",
+      authDomain: "form-e74ab.firebaseapp.com",
+      databaseURL: "https://form-e74ab-default-rtdb.firebaseio.com",
+      projectId: "form-e74ab",
+      storageBucket: "form-e74ab.appspot.com",
+      messagingSenderId: "93811294360",
+      appId: "1:93811294360:web:6bfcd40b7a4fe2524cd0ed",
+      measurementId: "G-GV55PBD71V"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getDatabase(app);
+
+    let userIP = "";
+
+    // Fetch public IP
+    fetch("https://api.ipify.org?format=json")
+      .then(res => res.json())
+      .then(data => {
+        userIP = data.ip;
+        document.getElementById("ipDisplay").textContent = `Verify your self to use the TYP menu`;
+      })
+      .catch(err => {
+        document.getElementById("ipDisplay").textContent = "Failed fetch user id";
+      });
+
+    async function isIPRegistered(ip) {
+      const snapshot = await get(ref(db, "allowed_ips"));
+      if (snapshot.exists()) {
+        const ips = snapshot.val();
+        // ips is an object of keys to {ip: "...", valid: true} objects
+        for (const key in ips) {
+          if (ips[key].ip === ip) {
+            return true;
+          }
+        }
+      }
+      return false;
+    }
+
+    // Register IP to Firebase only if not already registered
+    document.getElementById("registerBtn").addEventListener("click", async () => {
+      if (!userIP) return alert("IP not loaded.");
+
+      document.getElementById("status").textContent = "Checking user ID...";
+
+      try {
+        const alreadyRegistered = await isIPRegistered(userIP);
+        if (alreadyRegistered) {
+          document.getElementById("status").textContent = "ℹ️ User already registered.";
+          return;
+        }
+
+        const newRef = push(ref(db, "allowed_ips"));
+        await set(newRef, {
+          ip: userIP,
+          valid: true
+        });
+        document.getElementById("status").textContent = "✅ User ID registered successfully.";
+      } catch (err) {
+        console.error(err);
+        document.getElementById("status").textContent = "❌ Failed to register user ID.";
+      }
+    });
+  </script>
+</body>
+</html>
